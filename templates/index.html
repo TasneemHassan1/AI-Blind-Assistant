@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Blind Assistant — Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e11;
+    --panel:#12161b;
+    --panel-line:#1f262e;
+    --text:#e7e9ea;
+    --muted:#8b9198;
+    --idle:#3a4249;
+    --listening:#2dd4bf;
+    --speaking:#f5a623;
+    --danger:#ff5c5c;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  header{
+    padding:20px 28px 14px;
+    border-bottom:1px solid var(--panel-line);
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  header h1{
+    font-size:18px;
+    font-weight:700;
+    letter-spacing:0.02em;
+    margin:0;
+  }
+  header .wake-hint{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+  }
+  header .wake-hint b{ color:var(--text); font-weight:500; }
+
+  main{
+    display:grid;
+    grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);
+    gap:16px;
+    padding:16px;
+    max-width:1200px;
+    margin:0 auto;
+  }
+  @media (max-width:820px){
+    main{ grid-template-columns:1fr; }
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-radius:10px;
+    padding:16px;
+  }
+  .panel h2{
+    margin:0 0 12px;
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    font-weight:600;
+  }
+
+  .video-panel{ padding:0; overflow:hidden; }
+  .video-frame{ position:relative; background:#000; aspect-ratio:4/3; }
+  .video-frame img{
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  .video-label{
+    position:absolute; top:10px; left:10px;
+    background:rgba(0,0,0,0.55);
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    padding:4px 8px;
+    border-radius:5px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .rec-dot{
+    width:7px; height:7px; border-radius:50%; background:var(--danger);
+    animation:pulse 1.4s ease-in-out infinite;
+  }
+
+  .side-stack{ display:flex; flex-direction:column; gap:16px; }
+
+  .room-value{
+    font-family:'JetBrains Mono',monospace;
+    font-size:22px;
+    font-weight:500;
+    text-transform:capitalize;
+  }
+  .room-value.unknown{ color:var(--muted); font-weight:400; }
+
+  .alert-box{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    line-height:1.5;
+    border-radius:6px;
+    padding:10px 12px;
+    border:1px solid var(--panel-line);
+    color:var(--muted);
+  }
+  .alert-box.active{
+    color:var(--speaking);
+    border-color:var(--speaking);
+    background:rgba(245,166,35,0.08);
+  }
+
+  .pipeline{ display:flex; flex-direction:column; gap:10px; }
+  .stage{
+    display:flex; align-items:center; gap:10px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    padding:8px 10px;
+    border:1px solid var(--panel-line);
+    border-radius:6px;
+    transition:all .2s ease;
+  }
+  .stage .dot{
+    width:9px; height:9px; border-radius:50%; background:var(--idle);
+    flex-shrink:0;
+  }
+  .stage.active{
+    color:var(--text);
+    border-color:currentColor;
+  }
+  .stage.active .dot{ background:currentColor; box-shadow:0 0 8px currentColor; }
+  .stage[data-stage="listening"].active{ color:var(--listening); }
+  .stage[data-stage="speaking"].active{ color:var(--speaking); }
+  .stage.active .dot{ animation:pulse 1.2s ease-in-out infinite; }
+
+  .qa-row{ margin-bottom:12px; }
+  .qa-row:last-child{ margin-bottom:0; }
+  .qa-label{
+    font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:4px;
+  }
+  .qa-text{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px; line-height:1.5;
+  }
+  .qa-text.empty{ color:var(--muted); }
+
+  @keyframes pulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:0.35; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AI Blind Assistant — Monitor</h1>
+  <div class="wake-hint">Voice only · say <b>"assistant"</b> to ask a question</div>
+</header>
+
+<main>
+  <section class="panel video-panel">
+    <div class="video-frame">
+      <img src="{{ url_for('video_feed') }}" alt="Live camera feed">
+      <div class="video-label"><span class="rec-dot"></span>LIVE</div>
+    </div>
+  </section>
+
+  <div class="side-stack">
+    <section class="panel">
+      <h2>Current Room</h2>
+      <div id="room" class="room-value unknown">Unknown</div>
+    </section>
+
+    <section class="panel">
+      <h2>Navigation Alert</h2>
+      <div id="alert" class="alert-box">No obstacle currently flagged.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Voice Pipeline</h2>
+      <div class="pipeline">
+        <div class="stage" data-stage="idle"><span class="dot"></span>Idle</div>
+        <div class="stage" data-stage="listening"><span class="dot"></span>Listening</div>
+        <div class="stage" data-stage="speaking"><span class="dot"></span>Speaking</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Last Exchange</h2>
+      <div class="qa-row">
+        <div class="qa-label">Question</div>
+        <div id="question" class="qa-text empty">—</div>
+      </div>
+      <div class="qa-row">
+        <div class="qa-label">Answer</div>
+        <div id="answer" class="qa-text empty">—</div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+async function pollStatus(){
+  try{
+    const response = await fetch('/status', {cache:'no-store'});
+    const data = await response.json();
+
+    const roomEl = document.getElementById('room');
+    if(data.room){
+      roomEl.textContent = data.room;
+      roomEl.classList.remove('unknown');
+    } else {
+      roomEl.textContent = 'Unknown';
+      roomEl.classList.add('unknown');
+    }
+
+    const alertEl = document.getElementById('alert');
+    if(data.alert){
+      alertEl.textContent = data.alert;
+      alertEl.classList.add('active');
+    } else {
+      alertEl.textContent = 'No obstacle currently flagged.';
+      alertEl.classList.remove('active');
+    }
+
+    document.querySelectorAll('.stage').forEach(stage => {
+      stage.classList.toggle('active', stage.dataset.stage === data.voice_status);
+    });
+
+    const questionEl = document.getElementById('question');
+    const answerEl = document.getElementById('answer');
+    questionEl.textContent = data.last_question || '—';
+    questionEl.classList.toggle('empty', !data.last_question);
+    answerEl.textContent = data.last_answer || '—';
+    answerEl.classList.toggle('empty', !data.last_answer);
+  } catch(error){
+    console.error('Status poll failed:', error);
+  }
+}
+
+pollStatus();
+setInterval(pollStatus, 800);
+</script>
+
+</body>
+</html>

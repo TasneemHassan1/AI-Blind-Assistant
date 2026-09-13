@@ -1,0 +1,127 @@
+body{
+
+    margin:0;
+
+    font-family:Arial;
+
+    background:#edf2f7;
+
+}
+
+.container{
+
+    width:95%;
+
+    margin:auto;
+
+}
+
+header{
+
+    background:#0f172a;
+
+    color:white;
+
+    padding:20px;
+
+    margin-bottom:20px;
+
+    text-align:center;
+
+    border-radius:10px;
+
+}
+
+.grid{
+
+    display:grid;
+
+    grid-template-columns:2fr 1fr;
+
+    gap:20px;
+
+}
+
+.card{
+
+    background:white;
+
+    border-radius:10px;
+
+    padding:20px;
+
+    box-shadow:0 0 10px rgba(0,0,0,.15);
+
+}
+
+.camera img{
+
+    width:100%;
+
+    border-radius:10px;
+
+}
+
+table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+}
+
+th{
+
+    background:#2563eb;
+
+    color:white;
+
+}
+
+td,th{
+
+    padding:10px;
+
+    border:1px solid #ddd;
+
+}
+
+input{
+
+    width:80%;
+
+    padding:10px;
+
+    font-size:16px;
+
+}
+
+button{
+
+    padding:10px 20px;
+
+    background:#2563eb;
+
+    color:white;
+
+    border:none;
+
+    cursor:pointer;
+
+}
+
+button:hover{
+
+    background:#1d4ed8;
+
+}
+
+#answer{
+
+    margin-top:20px;
+
+    font-weight:bold;
+
+    color:#0f172a;
+
+}

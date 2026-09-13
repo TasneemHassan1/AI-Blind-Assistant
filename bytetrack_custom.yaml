@@ -1,0 +1,29 @@
+# Custom ByteTrack settings for the AI Blind Assistant.
+#
+# Why this file exists: with the default ultralytics bytetrack.yaml
+# (track_buffer: 30, match_thresh: 0.8), a perfectly stationary object like
+# a laptop was measured with velocity spikes of 100-400+ px/s in the debug
+# log. That is not real motion — it is the tracker losing the object for a
+# frame or two and re-assigning it a new track ID when it reappears.
+# Because MotionAnalyzer and SceneGraph key everything off track ID, this
+# made objects flicker in and out of the scene, broke "what do you see"
+# descriptions (only the most recently re-confirmed object shows up),
+# broke navigation TTC/velocity, and made the room voter reset constantly.
+#
+# track_buffer: how many frames a lost track is kept alive, waiting for the
+# same object to reappear, before ByteTrack gives up and would assign a new
+# ID next time it's seen. Raised from 30 -> 60 so a brief occlusion/blur
+# doesn't produce a new identity for the same physical object.
+#
+# match_thresh: similarity threshold required to match a detection to an
+# existing track. Lowered from 0.8 -> 0.7 (more lenient) so a slightly
+# shifted box from one frame to the next still matches its existing track
+# instead of spawning a new one.
+
+tracker_type: bytetrack
+track_high_thresh: 0.5
+track_low_thresh: 0.1
+new_track_thresh: 0.6
+track_buffer: 60
+match_thresh: 0.75
+fuse_score: True
